@@ -6,7 +6,7 @@ public class App {
         String ip = "127.0.0.1";
         int port = 23;
 
-        // Чтение IP-адреса и порта из аргументов командной строки
+        // Parse IP address and port from command line arguments
         if (args.length > 0) {
             ip = args[0];
         }
@@ -23,7 +23,7 @@ public class App {
             }
         }
 
-        // Запуск telnet-клиента
+        // Run telnet client
         TelnetClient telnetClient = new TelnetClient(ip, port);
         telnetClient.run();
     }

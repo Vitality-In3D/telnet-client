@@ -18,14 +18,14 @@ public class TelnetClient {
         try {
             Socket socket = new Socket(serverIp, port);
 
-            // Поток приёма данных от сервера
+            // Thread for receiving data from the server
             Thread receiverThread = new Thread(() -> {
                 try {
                     InputStream in = socket.getInputStream();
                     byte[] buffer = new byte[1024];
 
                     while (running && !socket.isClosed()) {
-                        // Неблокирующее чтение: проверяем наличие доступных байт
+                        // Non-blocking read: check available bytes before reading
                         if (in.available() > 0) {
                             int len = in.read(buffer);
                             if (len == -1) {
@@ -34,7 +34,7 @@ public class TelnetClient {
                             System.out.write(buffer, 0, len);
                             System.out.flush();
                         } else {
-                            // Снижение нагрузки на процессор при активном ожидании
+                            // Reduce CPU load during active waiting
                             try {
                                 Thread.sleep(20);
                             } catch (InterruptedException e) {
@@ -43,13 +43,13 @@ public class TelnetClient {
                         }
                     }
                 } catch (IOException e) {
-                    // Сокет был закрыт при выходе
+                    // Socket closed on shutdown
                 } finally {
                     running = false;
                 }
             });
 
-            // Поток отправки данных на сервер
+            // Thread for sending user input to the server
             Thread senderThread = new Thread(() -> {
                 try {
                     BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
@@ -57,16 +57,16 @@ public class TelnetClient {
                     String line;
 
                     while (running && (line = reader.readLine()) != null) {
-                        // Проверка команды завершения работы
+                        // Check for quit command
                         if ("/QUIT".equalsIgnoreCase(line.trim())) {
                             break;
                         }
-                        // Отправка введённого текста с переводом строки
+                        // Send entered text with CRLF line ending
                         out.write((line + "\r\n").getBytes());
                         out.flush();
                     }
                 } catch (IOException e) {
-                    // Ошибка при отправке
+                    // Error while sending data
                 } finally {
                     running = false;
                     try {
@@ -81,14 +81,14 @@ public class TelnetClient {
             receiverThread.start();
             senderThread.start();
 
-            // Ожидаем завершения потока отправки (по команде /QUIT или завершению ввода)
+            // Wait for sender thread to finish (e.g. on /QUIT or EOF)
             try {
                 senderThread.join();
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
 
-            // Гарантируем закрытие сокета и завершение потока приёма
+            // Ensure socket is closed and stop receiver thread
             try {
                 if (!socket.isClosed()) {
                     socket.close();
